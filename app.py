@@ -72,6 +72,52 @@ def get_member(id):
   member = Member.query.get(id)
   return member_schema.jsonify(member)
 
+# League Class/Model
+class League(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(80), unique=True)
+    type = db.Column(db.String(80))
+
+    def __init__(self, name, type):
+        self.name = name
+        self.type = type
+
+# League Schema
+class LeagueSchema(ma.Schema):
+  class Meta:
+    fields = ('id', 'name', 'type')
+
+# Init schema
+league_schema = LeagueSchema()
+leagues_schema = LeagueSchema(many=True)
+
+# Create a League
+@app.route('/league', methods=['POST'])
+def add_league():
+  name = request.json['name']
+  type = request.json['type']
+
+  new_league = League(name, type)
+
+  db.session.add(new_league)
+  db.session.commit()
+
+  return league_schema.jsonify(new_league)
+
+# Get All Leagues
+@app.route('/league', methods=['GET'])
+def get_leagues():
+  all_leagues = League.query.all()
+  result = leagues_schema.dump(all_leagues)
+  return jsonify(result)
+
+# Get Single League
+@app.route('/league/<id>', methods=['GET'])
+def get_league(id):
+  league = League.query.get(id)
+  return league_schema.jsonify(league)
+
+
 # Run Server
 if __name__ == "__main__":
     app.run(debug=True)
