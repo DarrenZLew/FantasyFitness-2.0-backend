@@ -177,6 +177,59 @@ def get_activity(id):
   activity = Activity.query.get(id)
   return activity_schema.jsonify(activity)
 
+#################################################################
+
+# Season Class/Model
+class Season(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    league_id = db.Column(db.Integer)
+    weeks = db.Column(db.Integer)
+    disabled = db.Column(db.Boolean)
+    # start_date = db.Column(db.Date)
+
+    def __init__(self, league_id, weeks, disabled):
+        self.league_id = league_id
+        self.weeks = weeks
+        self.disabled = disabled
+        # self.start_date = start_date
+
+# Season Schema
+class SeasonSchema(ma.Schema):
+  class Meta:
+    fields = ('id', 'league_id', 'weeks', 'disabled')
+
+# Init schema
+season_schema = SeasonSchema()
+seasons_schema = SeasonSchema(many=True)
+
+# Create a Season
+@app.route('/season', methods=['POST'])
+def add_season():
+  league_id = request.json['league_id']
+  weeks = request.json['weeks']
+  disabled = False
+#   start_date = request.json['start_date']
+
+  new_season = Season(league_id, weeks, disabled)
+
+  db.session.add(new_season)
+  db.session.commit()
+
+  return season_schema.jsonify(new_season)
+
+# Get All Seasons
+@app.route('/season', methods=['GET'])
+def get_seasons():
+  all_seasons = Season.query.all()
+  result = seasons_schema.dump(all_seasons)
+  return jsonify(result)
+
+# Get Single Season
+@app.route('/season/<id>', methods=['GET'])
+def get_a(id):
+  season = Season.query.get(id)
+  return season_schema.jsonify(season)
+
 
 # Run Server
 if __name__ == "__main__":
