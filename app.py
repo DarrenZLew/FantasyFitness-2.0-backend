@@ -24,6 +24,8 @@ db = SQLAlchemy(app)
 # Init ma
 ma = Marshmallow(app)
 
+#################################################################
+
 # Member Class/Model
 class Member(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -72,6 +74,8 @@ def get_member(id):
   member = Member.query.get(id)
   return member_schema.jsonify(member)
 
+#################################################################
+
 # League Class/Model
 class League(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -116,6 +120,62 @@ def get_leagues():
 def get_league(id):
   league = League.query.get(id)
   return league_schema.jsonify(league)
+
+#################################################################
+
+# Activity Class/Model
+class Activity(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    league_id = db.Column(db.Integer)
+    points = db.Column(db.Integer)
+    name = db.Column(db.String(80))
+    bonus = db.Column(db.Boolean)
+    limit = db.Column(db.Integer)
+
+    def __init__(self, league_id, points, name, bonus, limit):
+        self.league_id = league_id
+        self.points = points
+        self.name = name
+        self.bonus = bonus
+        self.limit = limit
+
+# Activity Schema
+class ActivitySchema(ma.Schema):
+  class Meta:
+    fields = ('id', 'league_id', 'points', 'name', 'bonus', 'limit')
+
+# Init schema
+activity_schema = ActivitySchema()
+activities_schema = ActivitySchema(many=True)
+
+# Create an Activity
+@app.route('/activity', methods=['POST'])
+def add_activity():
+  league_id = request.json['league_id']
+  points = request.json['points']
+  name = request.json['name']
+  bonus = request.json['bonus']
+  limit = request.json['limit']
+
+  new_activity = Activity(league_id, points, name, bonus, limit)
+
+  db.session.add(new_activity)
+  db.session.commit()
+
+  return activity_schema.jsonify(new_activity)
+
+# Get All Activities
+@app.route('/activity', methods=['GET'])
+def get_activities():
+  all_activities = Activity.query.all()
+  result = activities_schema.dump(all_activities)
+  return jsonify(result)
+
+# Get Single Activity
+@app.route('/activity/<id>', methods=['GET'])
+def get_activity(id):
+  activity = Activity.query.get(id)
+  return activity_schema.jsonify(activity)
 
 
 # Run Server
