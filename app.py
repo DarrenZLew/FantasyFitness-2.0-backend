@@ -1,9 +1,12 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
+from flask_login import LoginManager, UserMixin
+from flask_cors import CORS
 
 # Init app
 app = Flask(__name__)
+CORS(app)
 
 # Database
 POSTGRES = {
@@ -23,27 +26,43 @@ db = SQLAlchemy(app)
 # Init ma
 ma = Marshmallow(app)
 
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return Member.query.get(int(user_id))
+
 #################################################################
 
 # Member Class/Model
-class Member(db.Model):
+
+
+class Member(UserMixin, db.Model):
     __tablename__ = 'members'
 
     id = db.Column(db.Integer, primary_key=True)
-    first_name = db.Column(db.String(80), unique=True)
-    last_name = db.Column(db.String(80), unique=True)
+    first_name = db.Column(db.String(80))
+    last_name = db.Column(db.String(80))
     email = db.Column(db.String(80), unique=True)
-    leagues = db.relationship('Member_league', back_populates='member')
+    password = db.Column(db.String(80))
 
-    def __init__(self, first_name, last_name, email):
+    # leagues = db.relationship('Member_league', back_populates='member')
+
+    def __init__(self, first_name, last_name, email, password):
         self.first_name = first_name
         self.last_name = last_name
         self.email = email
+        self.password = password
 
 # Member Schema
+
+
 class MemberSchema(ma.Schema):
-  class Meta:
-    fields = ('id', 'first_name', 'last_name', 'email')
+    class Meta:
+        fields = ('id', 'first_name', 'last_name', 'email', 'password')
+
 
 # Init schema
 member_schema = MemberSchema()
@@ -52,49 +71,60 @@ members_schema = MemberSchema(many=True)
 # Create a Member
 @app.route('/signup', methods=['POST'])
 def add_member():
-  first_name = request.json['first_name']
-  last_name = request.json['last_name']
-  email = request.json['email']
+    first_name = request.json['first_name']
+    last_name = request.json['last_name']
+    email = request.json['email']
+    password = request.json['password']
 
-  new_member = Member(first_name, last_name, email)
+    member = Member.query.filter_by(email=email).first()
 
-  db.session.add(new_member)
-  db.session.commit()
+    if member:
+        return 'Email address already exists'
 
-  return member_schema.jsonify(new_member)
+    new_member = Member(first_name, last_name, email, password)
+
+    db.session.add(new_member)
+    db.session.commit()
+
+    return member_schema.jsonify(new_member)
 
 # Get All Members
 @app.route('/member', methods=['GET'])
 def get_members():
-  all_members = Member.query.all()
-  result = members_schema.dump(all_members)
-  return jsonify(result)
+    all_members = Member.query.all()
+    result = members_schema.dump(all_members)
+    return jsonify(result)
 
 # Get Single Member
 @app.route('/member/<id>', methods=['GET'])
 def get_member(id):
-  member = Member.query.get(id)
-  return member_schema.jsonify(member)
+    member = Member.query.get(id)
+    return member_schema.jsonify(member)
 
 #################################################################
 
 # League Class/Model
+
+
 class League(db.Model):
     __tablename__ = 'leagues'
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), unique=True)
     type = db.Column(db.String(80))
-    members = db.relationship('Member_league', back_populates='league')
+    # members = db.relationship('Member_league', back_populates='league')
 
     def __init__(self, name, type):
         self.name = name
         self.type = type
 
 # League Schema
+
+
 class LeagueSchema(ma.Schema):
-  class Meta:
-    fields = ('id', 'name', 'type')
+    class Meta:
+        fields = ('id', 'name', 'type')
+
 
 # Init schema
 league_schema = LeagueSchema()
@@ -103,47 +133,53 @@ leagues_schema = LeagueSchema(many=True)
 # Create a League
 @app.route('/league', methods=['POST'])
 def add_league():
-  name = request.json['name']
-  type = request.json['type']
+    name = request.json['name']
+    type = request.json['type']
 
-  new_league = League(name, type)
+    new_league = League(name, type)
 
-  db.session.add(new_league)
-  db.session.commit()
+    db.session.add(new_league)
+    db.session.commit()
 
-  return league_schema.jsonify(new_league)
+    return league_schema.jsonify(new_league)
 
 # Get All Leagues
 @app.route('/league', methods=['GET'])
 def get_leagues():
-  all_leagues = League.query.all()
-  result = leagues_schema.dump(all_leagues)
-  return jsonify(result)
+    all_leagues = League.query.all()
+    result = leagues_schema.dump(all_leagues)
+    return jsonify(result)
 
 # Get Single League
 @app.route('/league/<id>', methods=['GET'])
 def get_league(id):
-  league = League.query.get(id)
-  return league_schema.jsonify(league)
+    league = League.query.get(id)
+    return league_schema.jsonify(league)
 
 #################################################s################
 
 # Member League Class/Model
-class Member_league(db.Model):
-    __tablename__ = 'member_league'
 
-    league_id = db.Column(db.Integer, db.ForeignKey('leagues.id'), primary_key=True)
-    member_id = db.Column(db.Integer, db.ForeignKey('members.id'), primary_key=True)
-    privilege = db.Column(db.String(80))
 
-    def __init__(self, name, type):
-        self.league_id = league_id
-        self.member_id = member_id
-        self.privilege = privilege
+# class Member_league(db.Model):
+#     __tablename__ = 'member_league'
+
+#     league_id = db.Column(db.Integer, db.ForeignKey(
+#         'leagues.id'), primary_key=True)
+#     member_id = db.Column(db.Integer, db.ForeignKey(
+#         'members.id'), primary_key=True)
+#     privilege = db.Column(db.String(80))
+
+#     def __init__(self, name, type):
+#         self.league_id = league_id
+#         self.member_id = member_id
+#         self.privilege = privilege
 
 #################################################################
 
 # Activity Class/Model
+
+
 class Activity(db.Model):
     __tablename__ = 'activities'
 
@@ -162,9 +198,12 @@ class Activity(db.Model):
         self.limit = limit
 
 # Activity Schema
+
+
 class ActivitySchema(ma.Schema):
-  class Meta:
-    fields = ('id', 'league_id', 'points', 'name', 'bonus', 'limit')
+    class Meta:
+        fields = ('id', 'league_id', 'points', 'name', 'bonus', 'limit')
+
 
 # Init schema
 activity_schema = ActivitySchema()
@@ -173,35 +212,37 @@ activities_schema = ActivitySchema(many=True)
 # Create an Activity
 @app.route('/activity', methods=['POST'])
 def add_activity():
-  league_id = request.json['league_id']
-  points = request.json['points']
-  name = request.json['name']
-  bonus = request.json['bonus']
-  limit = request.json['limit']
+    league_id = request.json['league_id']
+    points = request.json['points']
+    name = request.json['name']
+    bonus = request.json['bonus']
+    limit = request.json['limit']
 
-  new_activity = Activity(league_id, points, name, bonus, limit)
+    new_activity = Activity(league_id, points, name, bonus, limit)
 
-  db.session.add(new_activity)
-  db.session.commit()
+    db.session.add(new_activity)
+    db.session.commit()
 
-  return activity_schema.jsonify(new_activity)
+    return activity_schema.jsonify(new_activity)
 
 # Get All Activities
 @app.route('/activity', methods=['GET'])
 def get_activities():
-  all_activities = Activity.query.all()
-  result = activities_schema.dump(all_activities)
-  return jsonify(result)
+    all_activities = Activity.query.all()
+    result = activities_schema.dump(all_activities)
+    return jsonify(result)
 
 # Get Single Activity
 @app.route('/activity/<id>', methods=['GET'])
 def get_activity(id):
-  activity = Activity.query.get(id)
-  return activity_schema.jsonify(activity)
+    activity = Activity.query.get(id)
+    return activity_schema.jsonify(activity)
 
 #################################################################
 
 # Season Class/Model
+
+
 class Season(db.Model):
     __tablename__ = 'seasons'
 
@@ -218,9 +259,12 @@ class Season(db.Model):
         self.start_date = start_date
 
 # Season Schema
+
+
 class SeasonSchema(ma.Schema):
-  class Meta:
-    fields = ('id', 'league_id', 'weeks', 'disabled', 'start_date')
+    class Meta:
+        fields = ('id', 'league_id', 'weeks', 'disabled', 'start_date')
+
 
 # Init schema
 season_schema = SeasonSchema()
@@ -229,30 +273,30 @@ seasons_schema = SeasonSchema(many=True)
 # Create a Season
 @app.route('/season', methods=['POST'])
 def add_season():
-  league_id = request.json['league_id']
-  weeks = request.json['weeks']
-  disabled = False
-  start_date = request.json['start_date']
+    league_id = request.json['league_id']
+    weeks = request.json['weeks']
+    disabled = False
+    start_date = request.json['start_date']
 
-  new_season = Season(league_id, weeks, disabled, start_date)
+    new_season = Season(league_id, weeks, disabled, start_date)
 
-  db.session.add(new_season)
-  db.session.commit()
+    db.session.add(new_season)
+    db.session.commit()
 
-  return season_schema.jsonify(new_season)
+    return season_schema.jsonify(new_season)
 
 # Get All Seasons
 @app.route('/season', methods=['GET'])
 def get_seasons():
-  all_seasons = Season.query.all()
-  result = seasons_schema.dump(all_seasons)
-  return jsonify(result)
+    all_seasons = Season.query.all()
+    result = seasons_schema.dump(all_seasons)
+    return jsonify(result)
 
 # Get Single Season
 @app.route('/season/<id>', methods=['GET'])
 def get_a(id):
-  season = Season.query.get(id)
-  return season_schema.jsonify(season)
+    season = Season.query.get(id)
+    return season_schema.jsonify(season)
 
 
 # Run Server
