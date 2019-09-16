@@ -2,10 +2,7 @@ from app import ma, db
 from flask_login import UserMixin
 
 
-
 # Member Class/Model
-
-
 class Member(UserMixin, db.Model):
   __tablename__ = 'members'
 
@@ -14,21 +11,14 @@ class Member(UserMixin, db.Model):
   last_name = db.Column(db.String(80))
   email = db.Column(db.String(80), unique=True)
   password = db.Column(db.String(80))
-
-  # leagues = db.relationship('Member_league', back_populates='member')
-
-  def __init__(self, first_name, last_name, email, password):
-    self.first_name = first_name
-    self.last_name = last_name
-    self.email = email
-    self.password = password
+  leagues = db.relationship('Member_league', back_populates='member')
 
 # Member Schema
 
 
 class MemberSchema(ma.Schema):
   class Meta:
-      fields = ('id', 'first_name', 'last_name', 'email', 'password')
+      fields = ('id', 'first_name', 'last_name', 'email', 'password', 'leagues')
 
 
 # Init schema
@@ -43,17 +33,13 @@ class League(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), unique=True)
     type = db.Column(db.String(80))
-    # members = db.relationship('Member_league', back_populates='league')
-
-    def __init__(self, name, type):
-        self.name = name
-        self.type = type
+    members = db.relationship('Member_league', back_populates='league')
 
 # League Schema
 
 class LeagueSchema(ma.Schema):
     class Meta:
-        fields = ('id', 'name', 'type')
+        fields = ('id', 'name', 'type', 'members')
 
 
 # Init schema
@@ -63,19 +49,16 @@ leagues_schema = LeagueSchema(many=True)
 # Member League Class/Model
 
 
-# class Member_league(db.Model):
-#     __tablename__ = 'member_league'
+class Member_league(db.Model):
+    __tablename__ = 'member_league'
 
-#     league_id = db.Column(db.Integer, db.ForeignKey(
-#         'leagues.id'), primary_key=True)
-#     member_id = db.Column(db.Integer, db.ForeignKey(
-#         'members.id'), primary_key=True)
-#     privilege = db.Column(db.String(80))
-
-#     def __init__(self, name, type):
-#         self.league_id = league_id
-#         self.member_id = member_id
-#         self.privilege = privilege
+    league_id = db.Column(db.Integer, db.ForeignKey(
+        'leagues.id'), primary_key=True)
+    member_id = db.Column(db.Integer, db.ForeignKey(
+        'members.id'), primary_key=True)
+    privilege = db.Column(db.String(80))
+    league = db.relationship('League', back_populates="members")
+    member = db.relationship('Member', back_populates="leagues")
 
 # Activity Class/Model
 
@@ -90,12 +73,6 @@ class Activity(db.Model):
     bonus = db.Column(db.Boolean)
     limit = db.Column(db.Integer)
 
-    def __init__(self, league_id, points, name, bonus, limit):
-        self.league_id = league_id
-        self.points = points
-        self.name = name
-        self.bonus = bonus
-        self.limit = limit
 
 # Activity Schema
 
@@ -122,11 +99,6 @@ class Season(db.Model):
     disabled = db.Column(db.Boolean)
     start_date = db.Column(db.Date)
 
-    def __init__(self, league_id, weeks, disabled, start_date):
-        self.league_id = league_id
-        self.weeks = weeks
-        self.disabled = disabled
-        self.start_date = start_date
 
 # Season Schema
 
