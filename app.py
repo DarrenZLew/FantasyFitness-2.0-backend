@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
-from flask_login import LoginManager, UserMixin
+from flask_login import LoginManager, UserMixin, login_user
 from flask_cors import CORS
 
 # Init app
@@ -19,6 +19,7 @@ POSTGRES = {
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://%(user)s:\
 %(pw)s@%(host)s:%(port)s/%(db)s' % POSTGRES
 
+app.config['SECRET_KEY'] = 'thisismysecretkeydonotstealit'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Init db
@@ -87,6 +88,21 @@ def add_member():
     db.session.commit()
 
     return member_schema.jsonify(new_member)
+
+# Login as Member
+@app.route('/login', methods=['POST'])
+def login():
+    email = request.json['email']
+    password = request.json['password']
+    remember = True if request.json['remember'] else False
+
+    member = Member.query.filter_by(email=email).first()
+
+    if not member:
+        return 'Could not find email/password. Please check your login details and try again'
+
+    login_user(member, remember=remember)
+    return member_schema.jsonify(member)
 
 # Get All Members
 @app.route('/member', methods=['GET'])
