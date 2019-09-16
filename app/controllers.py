@@ -51,7 +51,7 @@ def login():
 # Get All Members
 @mod_auth.route('/member', methods=['GET'])
 def get_members():
-    all_members = Member.query.all()
+    all_members = Member.query.outerjoin(Member.leagues).all()
     result = members_schema.dump(all_members)
     return jsonify(result)
 

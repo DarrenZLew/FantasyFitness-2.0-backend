@@ -1,6 +1,14 @@
 from app import ma, db
 from flask_login import UserMixin
 
+class MemberLeagueSchema(ma.Schema):
+    class Meta:
+        fields = ('league_id', 'member_id', 'privilege')
+
+
+# Init schema
+member_league_schema = MemberLeagueSchema()
+member_leagues_schema = MemberLeagueSchema(many=True)
 
 # Member Class/Model
 class Member(UserMixin, db.Model):
@@ -19,6 +27,7 @@ class Member(UserMixin, db.Model):
 class MemberSchema(ma.Schema):
   class Meta:
       fields = ('id', 'first_name', 'last_name', 'email', 'password', 'leagues')
+  leagues = ma.List(ma.Nested(MemberLeagueSchema))
 
 
 # Init schema
@@ -59,6 +68,7 @@ class Member_league(db.Model):
     privilege = db.Column(db.String(80))
     league = db.relationship('League', back_populates="members")
     member = db.relationship('Member', back_populates="leagues")
+
 
 # Activity Class/Model
 
