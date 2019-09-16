@@ -26,43 +26,11 @@ db = SQLAlchemy(app)
 # Init ma
 ma = Marshmallow(app)
 
-from app.controllers import mod_auth
+from app.controllers import mod_auth, mod_league
 
 # Register blueprint(s)
 app.register_blueprint(mod_auth)
-
-
-#################################################################
-
-
-
-# # Create a League
-# @app.route('/league', methods=['POST'])
-# def add_league():
-#     name = request.json['name']
-#     type = request.json['type']
-
-#     new_league = League(name, type)
-
-#     db.session.add(new_league)
-#     db.session.commit()
-
-#     return league_schema.jsonify(new_league)
-
-# # Get All Leagues
-# @app.route('/league', methods=['GET'])
-# def get_leagues():
-#     all_leagues = League.query.all()
-#     result = leagues_schema.dump(all_leagues)
-#     return jsonify(result)
-
-# # Get Single League
-# @app.route('/league/<id>', methods=['GET'])
-# def get_league(id):
-#     league = League.query.get(id)
-#     return league_schema.jsonify(league)
-
-# #################################################s################
+app.register_blueprint(mod_league)
 
 # # Create an Activity
 # @app.route('/activity', methods=['POST'])

@@ -1,10 +1,11 @@
 from app import app, db
-from app.models import Member, member_schema, members_schema
+from app.models import *
 from flask import Blueprint
 from flask import request, jsonify
 from flask_login import LoginManager, login_user
 
 mod_auth = Blueprint('auth', __name__, url_prefix='/auth')
+mod_league = Blueprint('league', __name__, url_prefix='/league')
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -60,3 +61,30 @@ def get_members():
 def get_member(id):
     member = Member.query.get(id)
     return member_schema.jsonify(member)
+
+
+# Create a League
+@mod_league.route('/', methods=['POST'])
+def add_league():
+    name = request.json['name']
+    type = request.json['type']
+
+    new_league = League(name, type)
+
+    db.session.add(new_league)
+    db.session.commit()
+
+    return league_schema.jsonify(new_league)
+
+# Get All Leagues
+@mod_league.route('/', methods=['GET'])
+def get_leagues():
+    all_leagues = League.query.all()
+    result = leagues_schema.dump(all_leagues)
+    return jsonify(result)
+
+# Get Single League
+@mod_league.route('/<id>', methods=['GET'])
+def get_league(id):
+    league = League.query.get(id)
+    return league_schema.jsonify(league)
