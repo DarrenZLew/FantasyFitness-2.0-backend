@@ -64,7 +64,7 @@ def get_member(id):
 
 
 # Create a League
-@mod_league.route('/', methods=['POST'])
+@mod_league.route('', methods=['POST'])
 def add_league():
     name = request.json['name']
     type = request.json['type']
@@ -77,7 +77,7 @@ def add_league():
     return league_schema.jsonify(new_league)
 
 # Get All Leagues
-@mod_league.route('/', methods=['GET'])
+@mod_league.route('', methods=['GET'])
 def get_leagues():
     all_leagues = League.query.all()
     result = leagues_schema.dump(all_leagues)
