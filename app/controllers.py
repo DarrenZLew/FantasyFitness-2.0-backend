@@ -10,6 +10,7 @@ mod_league = Blueprint('league', __name__, url_prefix='/league')
 login_manager = LoginManager()
 login_manager.init_app(app)
 
+
 # Create a Member
 @mod_auth.route('/signup', methods=['POST'])
 def add_member():
@@ -30,9 +31,11 @@ def add_member():
 
     return member_schema.jsonify(new_member)
 
+
 @login_manager.user_loader
 def load_user(user_id):
     return Member.query.get(int(user_id))
+
 
 # Login as Member
 @mod_auth.route('/login', methods=['POST'])
@@ -44,10 +47,15 @@ def login():
     member = Member.query.filter_by(email=email).first()
 
     if not member:
-        return 'Could not find email/password. Please check your login details and try again'
+        return jsonify(
+            {'value': {}, 'status': 'error',
+             'message': 'Could not find email/password. Please check your login details and try again'})
 
     login_user(member, remember=remember)
-    return member_schema.jsonify(member)
+    member_data = member_schema.dump(member)
+    return jsonify({'status': 'success', 'value': member_data,
+                    'message': 'Login successful. Hello {}!'.format(member_data["first_name"])})
+
 
 # Get All Members
 @mod_auth.route('/member', methods=['GET'])
@@ -55,6 +63,7 @@ def get_members():
     all_members = Member.query.outerjoin(Member.leagues).all()
     result = members_schema.dump(all_members)
     return jsonify(result)
+
 
 # Get Single Member
 @mod_auth.route('/member/<id>', methods=['GET'])
@@ -74,7 +83,10 @@ def add_league():
     db.session.add(new_league)
     db.session.commit()
 
-    return league_schema.jsonify(new_league)
+    league_data = league_schema.dump(new_league)
+    return jsonify({'status': 'success', 'value': league_data,
+                    'message': 'New league {} created!'.format(league_data["name"])})
+
 
 # Get All Leagues
 @mod_league.route('', methods=['GET'])
@@ -82,6 +94,7 @@ def get_leagues():
     all_leagues = League.query.all()
     result = leagues_schema.dump(all_leagues)
     return jsonify(result)
+
 
 # Get Single League
 @mod_league.route('/<id>', methods=['GET'])
