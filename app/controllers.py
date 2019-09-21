@@ -1,4 +1,4 @@
-from app import app, db
+from app import app
 from app.models import *
 from flask import Blueprint
 from flask import request, jsonify
@@ -22,14 +22,19 @@ def add_member():
     member = Member.query.filter_by(email=email).first()
 
     if member:
-        return 'Email address already exists'
+        return jsonify(
+            {'value': {}, 'status': 'error',
+             'message': 'Email address already exists'})
+
 
     new_member = Member(first_name, last_name, email, password)
 
     db.session.add(new_member)
     db.session.commit()
 
-    return member_schema.jsonify(new_member)
+    member_data = member_schema.dump(new_member)
+    return jsonify({'status': 'success', 'value': member_data,
+                    'message': 'Signup successful. Hello {}!'.format(member_data["first_name"])})
 
 
 @login_manager.user_loader
