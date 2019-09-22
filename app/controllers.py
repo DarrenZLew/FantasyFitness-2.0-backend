@@ -14,6 +14,7 @@ login_manager.init_app(app)
 # Create a Member
 @mod_auth.route('/signup', methods=['POST'])
 def add_member():
+    # add try catch for if one of these was not found correctly
     first_name = request.json['first_name']
     last_name = request.json['last_name']
     email = request.json['email']
@@ -32,6 +33,8 @@ def add_member():
     db.session.add(new_member)
     db.session.commit()
 
+    # add check for if session didn't commit correctly
+
     member_data = member_schema.dump(new_member)
     return jsonify({'status': 'success', 'value': member_data,
                     'message': 'Signup successful. Hello {}!'.format(member_data["first_name"])})
@@ -45,6 +48,7 @@ def load_user(user_id):
 # Login as Member
 @mod_auth.route('/login', methods=['POST'])
 def login():
+    # add try catch for if one of these was not found correctly
     email = request.json['email']
     password = request.json['password']
     remember = True if request.json['remember'] else False
@@ -80,8 +84,10 @@ def get_member(id):
 # Create a League
 @mod_league.route('', methods=['POST'])
 def add_league():
+    # add try catch for if one of these was not found correctly
     name = request.json['name']
     type = request.json['type']
+    member_id = request.json['member_id']
 
     new_league = League(name, type)
 
@@ -89,6 +95,13 @@ def add_league():
     db.session.commit()
 
     league_data = league_schema.dump(new_league)
+    if league_data:
+        new_member_league = Member_league(new_league.id, member_id, 'admin') 
+        db.session.add(new_member_league)
+        db.session.commit()
+
+    # Add check for if league or member didn't commit correctly
+
     return jsonify({'status': 'success', 'value': league_data,
                     'message': 'New league {} created!'.format(league_data["name"])})
 
@@ -98,8 +111,21 @@ def add_league():
 def get_leagues():
     all_leagues = League.query.all()
     result = leagues_schema.dump(all_leagues)
-    return jsonify(result)
+    message = ''
+    if result.length == 0:
+        message = 'No leagues are currently available'
+    return jsonify({'status': 'success', 'value': result, 'message': message})
 
+# Get All Leagues for Member
+@mod_league.route('/member/<member_id>', methods=['GET'])
+def get_leagues_member(member_id):
+    # member_id = request.json['member_id']
+    all_leagues = League.query.all()
+    result = leagues_schema.dump(all_leagues)
+    message = ''
+    if len(result) == 0:
+        message = 'No leagues are currently available'
+    return jsonify({'status': 'success', 'value': result, 'message': message})
 
 # Get Single League
 @mod_league.route('/<id>', methods=['GET'])

@@ -41,6 +41,10 @@ class Member_league(db.Model):
     league = db.relationship('League', back_populates="members")
     member = db.relationship('Member', back_populates="leagues")
 
+    def __init__(self, league_id, member_id, privilege):
+        self.league_id = league_id
+        self.member_id = member_id
+        self.privilege = privilege
 
 class MemberLeagueSchema(ma.Schema):
     class Meta:
