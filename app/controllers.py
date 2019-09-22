@@ -6,6 +6,7 @@ from flask_login import LoginManager, login_user
 
 mod_auth = Blueprint('auth', __name__, url_prefix='/auth')
 mod_league = Blueprint('league', __name__, url_prefix='/league')
+mod_activity = Blueprint('activity', __name__, url_prefix='/activity')
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -96,7 +97,7 @@ def add_league():
 
     league_data = league_schema.dump(new_league)
     if league_data:
-        new_member_league = Member_league(new_league.id, member_id, 'admin') 
+        new_member_league = Member_league(new_league.id, member_id, 'admin')
         db.session.add(new_member_league)
         db.session.commit()
 
@@ -111,24 +112,75 @@ def add_league():
 def get_leagues():
     all_leagues = League.query.all()
     result = leagues_schema.dump(all_leagues)
-    message = ''
-    if result.length == 0:
-        message = 'No leagues are currently available'
+    message = '' if len(result) > 0 else 'No leagues are currently available'
     return jsonify({'status': 'success', 'value': result, 'message': message})
 
 # Get All Leagues for Member
 @mod_league.route('/member/<member_id>', methods=['GET'])
 def get_leagues_member(member_id):
-    # member_id = request.json['member_id']
-    all_leagues = League.query.all()
-    result = leagues_schema.dump(all_leagues)
-    message = ''
-    if len(result) == 0:
-        message = 'No leagues are currently available'
+    all_member_leagues = League.query.filter(League.members.any(member_id=member_id)).all()
+    result = leagues_schema.dump(all_member_leagues)
+    message = '' if len(result) > 0 else 'No leagues are currently available'
     return jsonify({'status': 'success', 'value': result, 'message': message})
 
 # Get Single League
-@mod_league.route('/<id>', methods=['GET'])
-def get_league(id):
-    league = League.query.get(id)
+@mod_league.route('/<league_id>', methods=['GET'])
+def get_league(league_id):
+    league = League.query.get(league_id)
     return league_schema.jsonify(league)
+
+# @mod_league.route('/<id>', methods=["PUT"])
+# def update_league(id):
+#     league = League.query.get(id)
+
+
+
+# Update a Product
+# @app.route('/product/<id>', methods=['PUT'])
+# def update_product(id):
+#   product = Product.query.get(id)
+
+#   name = request.json['name']
+#   description = request.json['description']
+#   price = request.json['price']
+#   qty = request.json['qty']
+
+#   product.name = name
+#   product.description = description
+#   product.price = price
+#   product.qty = qty
+
+#   db.session.commit()
+
+#   return product_schema.jsonify(product)
+
+# Delete Product
+# @app.route('/product/<id>', methods=['DELETE'])
+# def delete_product(id):
+#   product = Product.query.get(id)
+#   db.session.delete(product)
+#   db.session.commit()
+
+#   return product_schema.jsonify(product)    
+
+# Add an activity to a league
+# @mod_activity.route('', methods=['POST'])
+# def add_activities():
+#     activities = request.json['activities']
+#     league_id = request.json['league_id']
+
+
+# def add_activity(fields):
+#     # add try catch for if one of these was not found correctly
+#     name = fields['name']
+#     points = fields['points']
+#     bonus = fields['bonus']
+#     league_id = fields['league_id']
+
+#     new_activity = Activity(league_id, points, name, bonus)
+
+#     db.session.add(new_activity)
+#     db.session.commit()
+
+    # return jsonify({'status': 'success', 'value': league_data,
+    #                 'message': 'New league {} created!'.format(league_data["name"])})
