@@ -26,11 +26,12 @@ db = SQLAlchemy(app)
 # Init ma
 ma = Marshmallow(app)
 
-from app.controllers import mod_auth, mod_league
+from app.controllers import mod_auth, mod_league, mod_activity
 
 # Register blueprint(s)
 app.register_blueprint(mod_auth)
 app.register_blueprint(mod_league)
+app.register_blueprint(mod_activity)
 
 # # Create an Activity
 # @app.route('/activity', methods=['POST'])

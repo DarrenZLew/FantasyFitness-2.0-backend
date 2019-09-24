@@ -116,13 +116,18 @@ leagues_schema = LeagueSchema(many=True)
 class Activity(db.Model):
     __tablename__ = 'activities'
 
-    id = db.Column(db.Integer)
     league_id = db.Column(db.Integer, primary_key=True)
     points = db.Column(db.Integer)
     name = db.Column(db.String(80), primary_key=True)
     bonus = db.Column(db.Boolean)
     limit = db.Column(db.Integer)
     member_activity_week = db.relationship('Member_activity_week', back_populates='activity')
+
+    def __init__(self, league_id, points, name, bonus):
+        self.league_id = league_id
+        self.points = points
+        self.name = name
+        self.bonus = bonus
 
 # Activity Schema
 

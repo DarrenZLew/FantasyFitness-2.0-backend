@@ -124,14 +124,52 @@ def get_leagues_member(member_id):
     return jsonify({'status': 'success', 'value': result, 'message': message})
 
 # Get Single League
-@mod_league.route('/<league_id>', methods=['GET'])
-def get_league(league_id):
-    league = League.query.get(league_id)
-    return league_schema.jsonify(league)
+@mod_league.route('/<id>', methods=['GET'])
+def get_league(id):
+    league = League.query.get(id)
+    result = league_schema.dump(league)
+    message = 'Successfully received data for league {}'.format(id)
+    return jsonify({'status': 'success', 'value': result, 'message': message})
 
 # @mod_league.route('/<id>', methods=["PUT"])
 # def update_league(id):
 #     league = League.query.get(id)
+
+
+def add_activity(fields, league_id):
+    # add try catch for if one of these was not found correctly
+    name = fields['name']
+    points = fields['points']
+    bonus = fields['bonus']
+
+    new_activity = Activity(league_id, points, name, bonus)
+
+    db.session.add(new_activity)
+    db.session.commit()
+
+    # return jsonify({'status': 'success', 'value': league_data,
+    #                 'message': 'New league {} created!'.format(league_data["name"])})
+
+
+# Add activities to a league
+@mod_league.route('/<id>/activity', methods=['POST'])
+def add_activities(id):
+    activities = request.json['activities']
+
+    for activity in activities:
+        add_activity(activity, id)
+
+    return jsonify({'status': 'success', 'value': '',
+                    'message': 'New activities created!'})
+
+
+# Get activities for a league
+@mod_league.route('/<id>/activity', methods=['GET'])
+def get_activities_league(id):
+    all_activities_league = Activity.query.filter_by(league_id=id).all()
+    result = activities_schema.dump(all_activities_league)
+    message = '' if len(result) > 0 else 'This league does not have any activities'
+    return jsonify({'status': 'success', 'value': result, 'message': message})
 
 
 
@@ -163,24 +201,3 @@ def get_league(league_id):
 
 #   return product_schema.jsonify(product)    
 
-# Add an activity to a league
-# @mod_activity.route('', methods=['POST'])
-# def add_activities():
-#     activities = request.json['activities']
-#     league_id = request.json['league_id']
-
-
-# def add_activity(fields):
-#     # add try catch for if one of these was not found correctly
-#     name = fields['name']
-#     points = fields['points']
-#     bonus = fields['bonus']
-#     league_id = fields['league_id']
-
-#     new_activity = Activity(league_id, points, name, bonus)
-
-#     db.session.add(new_activity)
-#     db.session.commit()
-
-    # return jsonify({'status': 'success', 'value': league_data,
-    #                 'message': 'New league {} created!'.format(league_data["name"])})
