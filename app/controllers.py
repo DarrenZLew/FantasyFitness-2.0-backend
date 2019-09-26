@@ -28,7 +28,6 @@ def add_member():
             {'value': {}, 'status': 'error',
              'message': 'Email address already exists'})
 
-
     new_member = Member(first_name, last_name, email, password)
 
     db.session.add(new_member)
@@ -118,7 +117,8 @@ def get_leagues():
 # Get All Leagues for Member
 @mod_league.route('/member/<member_id>', methods=['GET'])
 def get_leagues_member(member_id):
-    all_member_leagues = League.query.filter(League.members.any(member_id=member_id)).all()
+    all_member_leagues = League.query.filter(
+        League.members.any(member_id=member_id)).all()
     result = leagues_schema.dump(all_member_leagues)
     message = '' if len(result) > 0 else 'No leagues are currently available'
     return jsonify({'status': 'success', 'value': result, 'message': message})
@@ -142,16 +142,24 @@ def add_activity(fields, league_id):
     points = fields['points']
     bonus = fields['bonus']
 
-    new_activity = Activity(league_id, points, name, bonus)
+    activity_exists = Activity.query.filter_by(
+        league_id=league_id, name=name).scalar() is not None
+    if not activity_exists:
+        new_activity = Activity(league_id, points, name, bonus)
+        db.session.add(new_activity)
+    else:
+        activity = Activity.query.filter_by(
+            league_id=league_id, name=name).first()
+        activity.points = points
+        activity.bonus = bonus
 
-    db.session.add(new_activity)
     db.session.commit()
-
     # return jsonify({'status': 'success', 'value': league_data,
     #                 'message': 'New league {} created!'.format(league_data["name"])})
 
+    # Add activities to a league
 
-# Add activities to a league
+
 @mod_league.route('/<id>/activity', methods=['POST'])
 def add_activities(id):
     activities = request.json['activities']
@@ -168,9 +176,9 @@ def add_activities(id):
 def get_activities_league(id):
     all_activities_league = Activity.query.filter_by(league_id=id).all()
     result = activities_schema.dump(all_activities_league)
-    message = '' if len(result) > 0 else 'This league does not have any activities'
+    message = '' if len(
+        result) > 0 else 'This league does not have any activities'
     return jsonify({'status': 'success', 'value': result, 'message': message})
-
 
 
 # Update a Product
@@ -199,5 +207,4 @@ def get_activities_league(id):
 #   db.session.delete(product)
 #   db.session.commit()
 
-#   return product_schema.jsonify(product)    
-
+#   return product_schema.jsonify(product)
