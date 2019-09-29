@@ -5,8 +5,8 @@ from flask import request, jsonify
 from flask_login import LoginManager, login_user
 
 mod_auth = Blueprint('auth', __name__, url_prefix='/auth')
-mod_league = Blueprint('league', __name__, url_prefix='/league')
-mod_activity = Blueprint('activity', __name__, url_prefix='/activity')
+mod_league = Blueprint('league', __name__, url_prefix='/leagues')
+mod_activity = Blueprint('activity', __name__, url_prefix='/activities')
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -14,7 +14,7 @@ login_manager.init_app(app)
 
 # Create a Member
 @mod_auth.route('/signup', methods=['POST'])
-def add_member():
+def create_member():
     # add try catch for if one of these was not found correctly
     first_name = request.json['first_name']
     last_name = request.json['last_name']
@@ -67,7 +67,7 @@ def login():
 
 
 # Get All Members
-@mod_auth.route('/member', methods=['GET'])
+@mod_auth.route('/members', methods=['GET'])
 def get_members():
     all_members = Member.query.outerjoin(Member.leagues).all()
     result = members_schema.dump(all_members)
@@ -75,10 +75,18 @@ def get_members():
 
 
 # Get Single Member
-@mod_auth.route('/member/<id>', methods=['GET'])
+@mod_auth.route('/members/<id>', methods=['GET'])
 def get_member(id):
     member = Member.query.get(id)
     return member_schema.jsonify(member)
+
+# Add member to League
+
+
+def add_member(league_id, member_id, privilege='member'):
+    new_member_league = Member_league(league_id, member_id, privilege)
+    db.session.add(new_member_league)
+    db.session.commit()
 
 
 # Create a League
@@ -96,9 +104,7 @@ def add_league():
 
     league_data = league_schema.dump(new_league)
     if league_data:
-        new_member_league = Member_league(new_league.id, member_id, 'admin')
-        db.session.add(new_member_league)
-        db.session.commit()
+        add_member(new_league.id, member_id, 'admin')
 
     # Add check for if league or member didn't commit correctly
 
@@ -115,7 +121,7 @@ def get_leagues():
     return jsonify({'status': 'success', 'value': result, 'message': message})
 
 # Get All Leagues for Member
-@mod_league.route('/member/<member_id>', methods=['GET'])
+@mod_league.route('/members/<member_id>', methods=['GET'])
 def get_leagues_member(member_id):
     all_member_leagues = League.query.filter(
         League.members.any(member_id=member_id)).all()
@@ -157,10 +163,10 @@ def add_activity(fields, league_id):
     # return jsonify({'status': 'success', 'value': league_data,
     #                 'message': 'New league {} created!'.format(league_data["name"])})
 
-    # Add activities to a league
+# Add activities to a league
 
 
-@mod_league.route('/<id>/activity', methods=['POST'])
+@mod_league.route('/<id>/activities', methods=['POST'])
 def add_activities(id):
     activities = request.json['activities']
 
@@ -172,14 +178,42 @@ def add_activities(id):
 
 
 # Get activities for a league
-@mod_league.route('/<id>/activity', methods=['GET'])
-def get_activities_league(id):
-    all_activities_league = Activity.query.filter_by(league_id=id).all()
+@mod_league.route('/<league_id>/activities', methods=['GET'])
+def get_activities_league(league_id):
+    all_activities_league = Activity.query.filter_by(league_id=league_id).all()
     result = activities_schema.dump(all_activities_league)
     message = '' if len(
         result) > 0 else 'This league does not have any activities'
     return jsonify({'status': 'success', 'value': result, 'message': message})
 
+
+# Get members for a league
+@mod_league.route('/<league_id>/members', methods=['GET'])
+def get_members_league(league_id):
+    # members outside of selected league
+    if request.args.get('in') == 'false':
+        all_members_league = Member.query.join(
+            League, ~Member.leagues.any(league_id=league_id)).all()
+    # members inside of selected league
+    else:
+        all_members_league = Member.query.join(
+            League, Member.leagues.any(league_id=league_id)).all()
+
+    result = members_schema.dump(all_members_league)
+
+    message = '' if len(
+        result) > 0 else 'No members found for this request'
+    return jsonify({'status': 'success', 'value': result, 'message': message})
+
+
+# Add member to a league
+@mod_league.route('/<league_id>/members', methods=['POST'])
+def add_member_to_league(league_id):
+    member_id = request.json['member_id']
+    privilege = request.json['privilege']
+    add_member(league_id, member_id, privilege)
+    return jsonify({'status': 'success', 'value': '',
+                    'message': 'Member added to league!'})
 
 # Update a Product
 # @app.route('/product/<id>', methods=['PUT'])
