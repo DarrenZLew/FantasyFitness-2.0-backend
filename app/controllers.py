@@ -80,13 +80,37 @@ def get_member(id):
     member = Member.query.get(id)
     return member_schema.jsonify(member)
 
-# Add member to League
+
+""" 
+Add member to League
+"""
 
 
 def add_member(league_id, member_id, privilege='member'):
-    new_member_league = Member_league(league_id, member_id, privilege)
-    db.session.add(new_member_league)
+    member_exists_in_league = Member.query.filter(Member.leagues.any(
+        league_id=league_id, member_id=member_id)).scalar() is not None
+    if not member_exists_in_league:
+        new_member_in_league = Member_league(league_id, member_id, privilege)
+        db.session.add(new_member_in_league)
+    else:
+        member = Member_league.query.filter_by(
+            league_id=league_id, member_id=member_id).first()
+        member.privilege = privilege
     db.session.commit()
+
+
+# Add members to a League
+@mod_league.route('/<league_id>/members', methods=['POST'])
+def add_members(league_id):
+    members = request.json['members']
+
+    for member in members:
+        member_id = member['id']
+        privilege = member['privilege']
+        add_member(league_id, member_id, privilege)
+
+    return jsonify({'status': 'success', 'value': '',
+                    'message': 'New activities created!'})
 
 
 # Create a League
@@ -105,6 +129,7 @@ def add_league():
     league_data = league_schema.dump(new_league)
     if league_data:
         add_member(new_league.id, member_id, 'admin')
+        db.session.commit()
 
     # Add check for if league or member didn't commit correctly
 
@@ -159,7 +184,6 @@ def add_activity(fields, league_id):
         activity.points = points
         activity.bonus = bonus
 
-    db.session.commit()
     # return jsonify({'status': 'success', 'value': league_data,
     #                 'message': 'New league {} created!'.format(league_data["name"])})
 
@@ -173,6 +197,7 @@ def add_activities(id):
     for activity in activities:
         add_activity(activity, id)
 
+    db.session.commit()
     return jsonify({'status': 'success', 'value': '',
                     'message': 'New activities created!'})
 
