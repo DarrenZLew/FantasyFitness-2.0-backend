@@ -2,6 +2,8 @@ from app import ma, db
 from flask_login import UserMixin
 
 # Member Activity Week Class/Model
+
+
 class Member_activity_week(db.Model):
     __tablename__ = 'member_activity_week'
 
@@ -12,24 +14,32 @@ class Member_activity_week(db.Model):
     week_index = db.Column(db.Integer, primary_key=True)
     completed_activity_count = db.Column(db.Float)
     member = db.relationship('Member', back_populates="member_activity_week")
-    activity = db.relationship('Activity', back_populates="member_activity_week")
+    activity = db.relationship(
+        'Activity', back_populates="member_activity_week")
     week = db.relationship('Week', back_populates="member_activity_week")
 
     __table_args__ = (
-        db.ForeignKeyConstraint(['activity_league_id', 'activity_name'], ['activities.league_id', 'activities.name']),
-        db.ForeignKeyConstraint(['week_season_id', 'week_index'], ['weeks.season_id', 'weeks.index']),
+        db.ForeignKeyConstraint(['activity_league_id', 'activity_name'], [
+                                'activities.league_id', 'activities.name']),
+        db.ForeignKeyConstraint(['week_season_id', 'week_index'], [
+                                'weeks.season_id', 'weeks.index']),
         db.ForeignKeyConstraint(['member_id'], ['members.id'])
     )
 
+
 class MemberActivityWeekSchema(ma.Schema):
     class Meta:
-        fields = ('member_id', 'activity_id', 'week_id', 'completed_activity_count')
+        fields = ('member_id', 'activity_id',
+                  'week_id', 'completed_activity_count')
+
 
 # Init schema
 member_activity_week_schema = MemberActivityWeekSchema()
 member_activity_weeks_schema = MemberActivityWeekSchema(many=True)
 
 # Member League Class/Model
+
+
 class Member_league(db.Model):
     __tablename__ = 'member_league'
 
@@ -46,46 +56,54 @@ class Member_league(db.Model):
         self.member_id = member_id
         self.privilege = privilege
 
+
 class MemberLeagueSchema(ma.Schema):
     class Meta:
         fields = ('league_id', 'member_id', 'privilege')
+
 
 # Init schema
 member_league_schema = MemberLeagueSchema()
 member_leagues_schema = MemberLeagueSchema(many=True)
 
 # Member Class/Model
+
+
 class Member(UserMixin, db.Model):
-  __tablename__ = 'members'
+    __tablename__ = 'members'
 
-  id = db.Column(db.Integer, primary_key=True)
-  first_name = db.Column(db.String(80))
-  last_name = db.Column(db.String(80))
-  email = db.Column(db.String(80), unique=True)
-  password = db.Column(db.String(80))
-  leagues = db.relationship('Member_league', back_populates='member')
-  member_activity_week = db.relationship('Member_activity_week', back_populates='member')
+    id = db.Column(db.Integer, primary_key=True)
+    first_name = db.Column(db.String(80))
+    last_name = db.Column(db.String(80))
+    email = db.Column(db.String(80), unique=True)
+    password = db.Column(db.String(80))
+    leagues = db.relationship('Member_league', back_populates='member')
+    member_activity_week = db.relationship(
+        'Member_activity_week', back_populates='member')
 
-  def __init__(self, first_name, last_name, email, password):
-    self.first_name = first_name
-    self.last_name = last_name
-    self.email = email
-    self.password = password
+    def __init__(self, first_name, last_name, email, password):
+        self.first_name = first_name
+        self.last_name = last_name
+        self.email = email
+        self.password = password
 
 # Member Schema
 
 
 class MemberSchema(ma.Schema):
-  class Meta:
-      fields = ('id', 'first_name', 'last_name', 'email', 'password', 'leagues', 'member_activity_week')
-  leagues = ma.List(ma.Nested(MemberLeagueSchema))
-  member_activity_week = ma.List(ma.Nested(MemberActivityWeekSchema))
+    class Meta:
+        fields = ('id', 'first_name', 'last_name', 'email',
+                  'password', 'leagues', 'member_activity_week')
+    leagues = ma.List(ma.Nested(MemberLeagueSchema))
+    member_activity_week = ma.List(ma.Nested(MemberActivityWeekSchema))
+
 
 # Init schema
 member_schema = MemberSchema()
 members_schema = MemberSchema(many=True)
 
 # League Class/Model
+
 
 class League(db.Model):
     __tablename__ = 'leagues'
@@ -101,10 +119,12 @@ class League(db.Model):
 
 # League Schema
 
+
 class LeagueSchema(ma.Schema):
     class Meta:
         fields = ('id', 'name', 'type', 'members')
     members = ma.List(ma.Nested(MemberLeagueSchema))
+
 
 # Init schema
 league_schema = LeagueSchema()
@@ -121,7 +141,8 @@ class Activity(db.Model):
     name = db.Column(db.String(80), primary_key=True)
     bonus = db.Column(db.Boolean)
     limit = db.Column(db.Integer)
-    member_activity_week = db.relationship('Member_activity_week', back_populates='activity')
+    member_activity_week = db.relationship(
+        'Member_activity_week', back_populates='activity')
 
     def __init__(self, league_id, points, name, bonus):
         self.league_id = league_id
@@ -134,8 +155,10 @@ class Activity(db.Model):
 
 class ActivitySchema(ma.Schema):
     class Meta:
-        fields = ('id', 'league_id', 'points', 'name', 'bonus', 'limit', 'member_activity_week')
+        fields = ('league_id', 'points', 'name',
+                  'bonus', 'limit', 'member_activity_week')
     member_activity_week = ma.List(ma.Nested(MemberActivityWeekSchema))
+
 
 # Init schema
 activity_schema = ActivitySchema()
@@ -169,6 +192,7 @@ seasons_schema = SeasonSchema(many=True)
 
 # Week Class/Model
 
+
 class Week(db.Model):
     __tablename__ = 'weeks'
 
@@ -176,13 +200,16 @@ class Week(db.Model):
     season_id = db.Column(db.Integer, primary_key=True)
     index = db.Column(db.Integer, primary_key=True)
     disabled = db.Column(db.Boolean)
-    member_activity_week = db.relationship('Member_activity_week', back_populates='week')
+    member_activity_week = db.relationship(
+        'Member_activity_week', back_populates='week')
 
 # Week Schema
 
+
 class WeekSchema(ma.Schema):
     class Meta:
-        fields = ('id', 'season_id', 'index', 'disabled', 'member_activity_week')
+        fields = ('id', 'season_id', 'index',
+                  'disabled', 'member_activity_week')
     member_activity_week = ma.List(ma.Nested(MemberActivityWeekSchema))
 
 

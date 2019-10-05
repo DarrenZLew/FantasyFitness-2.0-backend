@@ -74,6 +74,16 @@ def get_members():
     return jsonify(result)
 
 
+# Delete a Member
+@mod_auth.route('/members/<id>', methods=['DELETE'])
+def delete_member(id):
+    member = Member.query.get(id)
+    db.session.delete(member)
+    db.session.commit()
+    return jsonify({'status': 'success', 'value': 'Deleted',
+                    'message': 'Member {} {} deleted!'.format(member.first_name, member.last_name)})
+
+
 # Get Single Member
 @mod_auth.route('/members/<id>', methods=['GET'])
 def get_member(id):
@@ -81,11 +91,7 @@ def get_member(id):
     return member_schema.jsonify(member)
 
 
-""" 
-Add member to League
-"""
-
-
+# Add member to League
 def add_member(league_id, member_id, privilege='member'):
     member_exists_in_league = Member.query.filter(Member.leagues.any(
         league_id=league_id, member_id=member_id)).scalar() is not None
@@ -112,6 +118,17 @@ def add_members(league_id):
     return jsonify({'status': 'success', 'value': '',
                     'message': 'New activities created!'})
 
+
+# Delete member from a League
+@mod_league.route('/<league_id>/members', methods=['DELETE'])
+def delete_member(league_id):
+    member_id = request.json['member_id']
+    member = Member_league.query.filter_by(
+        league_id=league_id, member_id=member_id).first()
+    db.session.delete(member)
+    db.session.commit()
+    return jsonify({'status': 'success', 'value': 'Deleted',
+                    'message': 'Member {} deleted from league {}!'.format(member_id, league_id)})
 
 # Create a League
 @mod_league.route('', methods=['POST'])
@@ -162,9 +179,18 @@ def get_league(id):
     message = 'Successfully received data for league {}'.format(id)
     return jsonify({'status': 'success', 'value': result, 'message': message})
 
-# @mod_league.route('/<id>', methods=["PUT"])
-# def update_league(id):
-#     league = League.query.get(id)
+
+# Delete Activity from League
+@mod_league.route('/<league_id>/activities', methods=['DELETE'])
+def delete_activity(league_id):
+    name = request.json['name']
+    activity = Activity.query.filter_by(
+        league_id=league_id, name=name).first()
+    db.session.delete(activity)
+    db.session.commit()
+
+    return jsonify({'status': 'success', 'value': 'Deleted',
+                    'message': 'Activity {} deleted!'.format(name)})
 
 
 def add_activity(fields, league_id):
@@ -184,18 +210,14 @@ def add_activity(fields, league_id):
         activity.points = points
         activity.bonus = bonus
 
-    # return jsonify({'status': 'success', 'value': league_data,
-    #                 'message': 'New league {} created!'.format(league_data["name"])})
 
 # Add activities to a league
-
-
-@mod_league.route('/<id>/activities', methods=['POST'])
-def add_activities(id):
+@mod_league.route('/<league_id>/activities', methods=['POST'])
+def add_activities(league_id):
     activities = request.json['activities']
 
     for activity in activities:
-        add_activity(activity, id)
+        add_activity(activity, league_id)
 
     db.session.commit()
     return jsonify({'status': 'success', 'value': '',
@@ -239,31 +261,3 @@ def add_member_to_league(league_id):
     add_member(league_id, member_id, privilege)
     return jsonify({'status': 'success', 'value': '',
                     'message': 'Member added to league!'})
-
-# Update a Product
-# @app.route('/product/<id>', methods=['PUT'])
-# def update_product(id):
-#   product = Product.query.get(id)
-
-#   name = request.json['name']
-#   description = request.json['description']
-#   price = request.json['price']
-#   qty = request.json['qty']
-
-#   product.name = name
-#   product.description = description
-#   product.price = price
-#   product.qty = qty
-
-#   db.session.commit()
-
-#   return product_schema.jsonify(product)
-
-# Delete Product
-# @app.route('/product/<id>', methods=['DELETE'])
-# def delete_product(id):
-#   product = Product.query.get(id)
-#   db.session.delete(product)
-#   db.session.commit()
-
-#   return product_schema.jsonify(product)
