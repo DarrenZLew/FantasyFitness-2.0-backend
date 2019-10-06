@@ -91,8 +91,11 @@ def get_member(id):
     return member_schema.jsonify(member)
 
 
-# Add member to League
-def add_member(league_id, member_id, privilege='member'):
+# Update member to League
+def update_member(member_fields):
+    league_id = member_fields['league_id']
+    member_id = member_fields['id']
+    privilege = member_fields['privilege']
     member_exists_in_league = Member.query.filter(Member.leagues.any(
         league_id=league_id, member_id=member_id)).scalar() is not None
     if not member_exists_in_league:
@@ -105,30 +108,31 @@ def add_member(league_id, member_id, privilege='member'):
     db.session.commit()
 
 
-# Add members to a League
-@mod_league.route('/<league_id>/members', methods=['POST'])
-def add_members(league_id):
-    members = request.json['members']
-
-    for member in members:
-        member_id = member['id']
-        privilege = member['privilege']
-        add_member(league_id, member_id, privilege)
-
-    return jsonify({'status': 'success', 'value': '',
-                    'message': 'New activities created!'})
-
-
-# Delete member from a League
-@mod_league.route('/<league_id>/members', methods=['DELETE'])
-def delete_member(league_id):
-    member_id = request.json['member_id']
+# Delete member from League
+def delete_member(member_fields):
+    league_id = member_fields['league_id']
+    member_id = member_fields['id']
     member = Member_league.query.filter_by(
         league_id=league_id, member_id=member_id).first()
     db.session.delete(member)
     db.session.commit()
-    return jsonify({'status': 'success', 'value': 'Deleted',
-                    'message': 'Member {} deleted from league {}!'.format(member_id, league_id)})
+
+
+# Add/Delete/Update members to a League
+@mod_league.route('/<league_id>/members', methods=['POST'])
+def edit_members_league(league_id):
+    members = request.json['members']
+
+    for member in members:
+        member['league_id'] = league_id
+        if member['delete']:
+            delete_member(member)
+        else:
+            update_member(member)
+
+    return jsonify({'status': 'success', 'value': '',
+                    'message': 'Members in league updated!'})
+
 
 # Create a League
 @mod_league.route('', methods=['POST'])
@@ -145,7 +149,12 @@ def add_league():
 
     league_data = league_schema.dump(new_league)
     if league_data:
-        add_member(new_league.id, member_id, 'admin')
+        new_member = {
+            'league_id': new_league.id,
+            'member_id': member_id,
+            'privilege': 'admin'
+        }
+        update_member(new_member)
         db.session.commit()
 
     # Add check for if league or member didn't commit correctly
@@ -181,9 +190,9 @@ def get_league(id):
 
 
 # Delete Activity from League
-@mod_league.route('/<league_id>/activities', methods=['DELETE'])
-def delete_activity(league_id):
-    name = request.json['name']
+def delete_activity(activity_fields):
+    league_id = activity_fields['league_id']
+    name = activity_fields['name']
     activity = Activity.query.filter_by(
         league_id=league_id, name=name).first()
     db.session.delete(activity)
@@ -193,11 +202,12 @@ def delete_activity(league_id):
                     'message': 'Activity {} deleted!'.format(name)})
 
 
-def add_activity(fields, league_id):
+def update_activity(activity_fields):
     # add try catch for if one of these was not found correctly
-    name = fields['name']
-    points = fields['points']
-    bonus = fields['bonus']
+    league_id = activity_fields['league_id']
+    name = activity_fields['name']
+    points = activity_fields['points']
+    bonus = activity_fields['bonus']
 
     activity_exists = Activity.query.filter_by(
         league_id=league_id, name=name).scalar() is not None
@@ -213,11 +223,15 @@ def add_activity(fields, league_id):
 
 # Add activities to a league
 @mod_league.route('/<league_id>/activities', methods=['POST'])
-def add_activities(league_id):
+def edit_activities_league(league_id):
     activities = request.json['activities']
 
     for activity in activities:
-        add_activity(activity, league_id)
+        activity['league_id'] = league_id
+        if activity['delete']:
+            delete_activity(activity)
+        else:
+            update_activity(activity)
 
     db.session.commit()
     return jsonify({'status': 'success', 'value': '',
@@ -251,13 +265,3 @@ def get_members_league(league_id):
     message = '' if len(
         result) > 0 else 'No members found for this request'
     return jsonify({'status': 'success', 'value': result, 'message': message})
-
-
-# Add member to a league
-@mod_league.route('/<league_id>/members', methods=['POST'])
-def add_member_to_league(league_id):
-    member_id = request.json['member_id']
-    privilege = request.json['privilege']
-    add_member(league_id, member_id, privilege)
-    return jsonify({'status': 'success', 'value': '',
-                    'message': 'Member added to league!'})
