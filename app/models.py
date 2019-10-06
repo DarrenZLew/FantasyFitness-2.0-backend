@@ -166,8 +166,6 @@ activities_schema = ActivitySchema(many=True)
 
 
 # Season Class/Model
-
-
 class Season(db.Model):
     __tablename__ = 'seasons'
 
@@ -177,10 +175,14 @@ class Season(db.Model):
     disabled = db.Column(db.Boolean)
     start_date = db.Column(db.Date)
 
+    def __init__(self, league_id, weeks, disabled, start_date):
+        self.league_id = league_id
+        self.weeks = weeks
+        self.disabled = disabled
+        self.start_date = start_date
+
 
 # Season Schema
-
-
 class SeasonSchema(ma.Schema):
     class Meta:
         fields = ('id', 'league_id', 'weeks', 'disabled', 'start_date')
@@ -190,9 +192,8 @@ class SeasonSchema(ma.Schema):
 season_schema = SeasonSchema()
 seasons_schema = SeasonSchema(many=True)
 
+
 # Week Class/Model
-
-
 class Week(db.Model):
     __tablename__ = 'weeks'
 
@@ -203,9 +204,8 @@ class Week(db.Model):
     member_activity_week = db.relationship(
         'Member_activity_week', back_populates='week')
 
+
 # Week Schema
-
-
 class WeekSchema(ma.Schema):
     class Meta:
         fields = ('id', 'season_id', 'index',

@@ -265,3 +265,41 @@ def get_members_league(league_id):
     message = '' if len(
         result) > 0 else 'No members found for this request'
     return jsonify({'status': 'success', 'value': result, 'message': message})
+
+
+# Get Season for a League
+@mod_league.route('/<league_id>/seasons', methods=['GET'])
+def get_season_league(league_id):
+    active_season = Season.query.filter_by(
+        league_id=league_id).first()
+    result = season_schema.dump(active_season)
+    message = 'Successfully received active season for league {}'.format(
+        league_id)
+    return jsonify({'status': 'success', 'value': result, 'message': message})
+
+
+# Activate Season for a League
+
+
+# Update Season for a League
+@mod_league.route('/<league_id>/seasons', methods=['POST'])
+def update_season_league(league_id):
+    # add try catch for if one of these was not found correctly
+    weeks = request.json['weeks']
+    start_date = request.json['start_date']
+    disabled = True
+
+    season_exists = Season.query.filter_by(
+        league_id=league_id).scalar() is not None
+    if not season_exists:
+        new_season = Season(league_id, weeks, disabled, start_date)
+        db.session.add(new_season)
+    else:
+        season = Season.query.filter_by(
+            league_id=league_id).first()
+        season.weeks = weeks
+        season.start_date = start_date
+        season.disabled = disabled
+    db.session.commit()
+    return jsonify({'status': 'success', 'value': '',
+                    'message': 'Season updated!'})
