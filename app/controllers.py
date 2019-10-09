@@ -71,8 +71,8 @@ def login():
 def get_members():
     all_members = Member.query.outerjoin(Member.leagues).all()
     result = members_schema.dump(all_members)
-    return jsonify(result)
-
+    return jsonify({'status': 'success', 'value': result,
+                    'message': 'All members retrieved!'})
 
 # Delete a Member
 @mod_auth.route('/members/<id>', methods=['DELETE'])
@@ -279,12 +279,32 @@ def get_season_league(league_id):
 
 
 # Activate Season for a League
+def activate_season_league(activate, league_id):
+    season = Season.query.filter_by(league_id=league_id).first()
+    season.disabled = activate
+    db.session.commit()
+
+
+# Activate Season for a League
+@mod_league.route('/<league_id>/seasons/activate', methods=['POST'])
+def activate_season_league(league_id):
+    season = Season.query.filter_by(league_id=league_id).first()
+    season.disabled = True
+    db.session.commit()
+
+
+# Deactivate Season for a League
+@mod_league.route('/<league_id>/seasons/deactivate', methods=['POST'])
+def activate_season_league(league_id):
+    season = Season.query.filter_by(league_id=league_id).first()
+    season.disabled = False
+    db.session.commit()
+
 
 
 # Update Season for a League
 @mod_league.route('/<league_id>/seasons', methods=['POST'])
 def update_season_league(league_id):
-    # add try catch for if one of these was not found correctly
     weeks = request.json['weeks']
     start_date = request.json['start_date']
     disabled = True
