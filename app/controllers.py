@@ -279,27 +279,21 @@ def get_season_league(league_id):
 
 
 # Activate Season for a League
-def activate_season_league(activate, league_id):
-    season = Season.query.filter_by(league_id=league_id).first()
-    season.disabled = activate
-    db.session.commit()
-
-
-# Activate Season for a League
 @mod_league.route('/<league_id>/seasons/activate', methods=['POST'])
-def activate_season_league(league_id):
-    season = Season.query.filter_by(league_id=league_id).first()
-    season.disabled = True
-    db.session.commit()
-
-
-# Deactivate Season for a League
-@mod_league.route('/<league_id>/seasons/deactivate', methods=['POST'])
 def activate_season_league(league_id):
     season = Season.query.filter_by(league_id=league_id).first()
     season.disabled = False
     db.session.commit()
+    return jsonify({'status': 'success', 'value': '', 'message': 'Season in league {} activated'.format(league_id)})
 
+
+# Deactivate Season for a League
+@mod_league.route('/<league_id>/seasons/deactivate', methods=['POST'])
+def deactivate_season_league(league_id):
+    season = Season.query.filter_by(league_id=league_id).first()
+    season.disabled = True
+    db.session.commit()
+    return jsonify({'status': 'success', 'value': '', 'message': 'Season in league {} deactivated'.format(league_id)})
 
 
 # Update Season for a League
