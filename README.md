@@ -12,3 +12,7 @@ sudo su - postgres
 psql
 // Connect to fantasy fitness database
 \c fantasyfitness;
+
+
+// Schema Design
+https://app.dbdesigner.net/designer/schema/265873
