@@ -151,7 +151,7 @@ def add_league():
     if league_data:
         new_member = {
             'league_id': new_league.id,
-            'member_id': member_id,
+            'id': member_id,
             'privilege': 'admin'
         }
         update_member(new_member)
@@ -299,19 +299,19 @@ def deactivate_season_league(league_id):
 # Update Season for a League
 @mod_league.route('/<league_id>/seasons', methods=['POST'])
 def update_season_league(league_id):
-    weeks = request.json['weeks']
+    weeks_number = request.json['weeks_number']
     start_date = request.json['start_date']
     disabled = True
 
     season_exists = Season.query.filter_by(
         league_id=league_id).scalar() is not None
     if not season_exists:
-        new_season = Season(league_id, weeks, disabled, start_date)
+        new_season = Season(league_id, weeks_number, disabled, start_date)
         db.session.add(new_season)
     else:
         season = Season.query.filter_by(
             league_id=league_id).first()
-        season.weeks = weeks
+        season.weeks_number = weeks_number
         season.start_date = start_date
         season.disabled = disabled
     db.session.commit()

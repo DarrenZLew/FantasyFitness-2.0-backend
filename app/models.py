@@ -6,11 +6,12 @@ from flask_login import UserMixin
 class Member_activity_week(db.Model):
     __tablename__ = 'member_activity_week'
 
-    member_id = db.Column(db.Integer, primary_key=True)
-    activity_league_id = db.Column(db.Integer, primary_key=True)
-    activity_name = db.Column(db.String(80), primary_key=True)
-    week_season_id = db.Column(db.Integer, primary_key=True)
-    week_index = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key = True)
+    member_id = db.Column(db.Integer, db.ForeignKey('members.id'))
+    activity_id = db.Column(db.Integer, db.ForeignKey(
+        'activities.id'))
+    week_id = db.Column(db.Integer,db.ForeignKey(
+        'weeks.id'))
     completed_activity_count = db.Column(db.Float)
     member = db.relationship('Member', back_populates="member_activity_week")
     activity = db.relationship(
@@ -18,11 +19,7 @@ class Member_activity_week(db.Model):
     week = db.relationship('Week', back_populates="member_activity_week")
 
     __table_args__ = (
-        db.ForeignKeyConstraint(['activity_league_id', 'activity_name'], [
-                                'activities.league_id', 'activities.name']),
-        db.ForeignKeyConstraint(['week_season_id', 'week_index'], [
-                                'weeks.season_id', 'weeks.index']),
-        db.ForeignKeyConstraint(['member_id'], ['members.id'])
+        db.UniqueConstraint('member_id', 'activity_id', 'week_id'),
     )
 
 
@@ -75,7 +72,6 @@ class Member(UserMixin, db.Model):
     email = db.Column(db.String(80), unique=True)
     password = db.Column(db.String(80))
     leagues = db.relationship('Member_league', back_populates='member')
-    # seasons = db.relationship('Season', back_populates='member')
     member_activity_week = db.relationship(
         'Member_activity_week', back_populates='member')
 
@@ -104,10 +100,11 @@ members_schema = MemberSchema(many=True)
 class Activity(db.Model):
     __tablename__ = 'activities'
 
+    id = db.Column(db.Integer, primary_key = True)
     league_id = db.Column(db.Integer, db.ForeignKey(
-        'leagues.id'), primary_key=True)
+        'leagues.id'))
     points = db.Column(db.Integer)
-    name = db.Column(db.String(80), primary_key=True)
+    name = db.Column(db.String(80))
     bonus = db.Column(db.Boolean)
     limit = db.Column(db.Integer)
     league = db.relationship('League', back_populates='activities')
@@ -138,10 +135,10 @@ activities_schema = ActivitySchema(many=True)
 class Week(db.Model):
     __tablename__ = 'weeks'
 
-    # id = db.Column(db.Integer, unique=True, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     season_id = db.Column(db.Integer, db.ForeignKey(
-        'seasons.id'), primary_key=True)
-    index = db.Column(db.Integer, primary_key=True)
+        'seasons.id'))
+    index = db.Column(db.Integer)
     disabled = db.Column(db.Boolean)
     season = db.relationship('Season', back_populates='weeks')
     member_activity_week = db.relationship(
@@ -151,7 +148,7 @@ class Week(db.Model):
 # Week Schema
 class WeekSchema(ma.Schema):
     class Meta:
-        fields = ('season_id', 'index',
+        fields = ('id', 'season_id', 'index',
                   'disabled', 'member_activity_week')
     member_activity_week = ma.List(ma.Nested(MemberActivityWeekSchema))
 
@@ -166,13 +163,10 @@ class Season(db.Model):
     __tablename__ = 'seasons'
     id = db.Column(db.Integer, primary_key=True)
     league_id = db.Column(db.Integer, db.ForeignKey(
-        'leagues.id'), primary_key=True)
-    # member_id = db.Column(db.Integer, db.ForeignKey(
-    #     'members.id'), primary_key=True)
+        'leagues.id'))
     weeks_number = db.Column(db.Integer)
     disabled = db.Column(db.Boolean)
     start_date = db.Column(db.Date)
-    # member = db.relationship('Member', back_populates='seasons')
     league = db.relationship('League', back_populates='seasons')
     weeks = db.relationship('Week', back_populates='season')
 
