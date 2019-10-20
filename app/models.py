@@ -6,11 +6,11 @@ from flask_login import UserMixin
 class Member_activity_week(db.Model):
     __tablename__ = 'member_activity_week'
 
-    id = db.Column(db.Integer, primary_key = True)
+    id = db.Column(db.Integer, primary_key=True)
     member_id = db.Column(db.Integer, db.ForeignKey('members.id'))
     activity_id = db.Column(db.Integer, db.ForeignKey(
         'activities.id'))
-    week_id = db.Column(db.Integer,db.ForeignKey(
+    week_id = db.Column(db.Integer, db.ForeignKey(
         'weeks.id'))
     completed_activity_count = db.Column(db.Float)
     member = db.relationship('Member', back_populates="member_activity_week")
@@ -100,7 +100,7 @@ members_schema = MemberSchema(many=True)
 class Activity(db.Model):
     __tablename__ = 'activities'
 
-    id = db.Column(db.Integer, primary_key = True)
+    id = db.Column(db.Integer, primary_key=True)
     league_id = db.Column(db.Integer, db.ForeignKey(
         'leagues.id'))
     points = db.Column(db.Integer)
@@ -139,17 +139,19 @@ class Week(db.Model):
     season_id = db.Column(db.Integer, db.ForeignKey(
         'seasons.id'))
     index = db.Column(db.Integer)
-    disabled = db.Column(db.Boolean)
     season = db.relationship('Season', back_populates='weeks')
     member_activity_week = db.relationship(
         'Member_activity_week', back_populates='week')
+
+    def __init__(self, season_id, index):
+        self.season_id = season_id
+        self.index = index
 
 
 # Week Schema
 class WeekSchema(ma.Schema):
     class Meta:
-        fields = ('id', 'season_id', 'index',
-                  'disabled', 'member_activity_week')
+        fields = ('id', 'season_id', 'index', 'member_activity_week')
     member_activity_week = ma.List(ma.Nested(MemberActivityWeekSchema))
 
 
@@ -166,7 +168,7 @@ class Season(db.Model):
         'leagues.id'))
     weeks_number = db.Column(db.Integer)
     disabled = db.Column(db.Boolean)
-    start_date = db.Column(db.Date)
+    start_date = db.Column(db.DateTime)
     league = db.relationship('League', back_populates='seasons')
     weeks = db.relationship('Week', back_populates='season')
 

@@ -283,6 +283,7 @@ def get_season_league(league_id):
 def activate_season_league(league_id):
     season = Season.query.filter_by(league_id=league_id).first()
     season.disabled = False
+    create_weeks(league_id, season.weeks_number)
     db.session.commit()
     return jsonify({'status': 'success', 'value': '', 'message': 'Season in league {} activated'.format(league_id)})
 
@@ -292,6 +293,7 @@ def activate_season_league(league_id):
 def deactivate_season_league(league_id):
     season = Season.query.filter_by(league_id=league_id).first()
     season.disabled = True
+    delete_weeks(season.id)
     db.session.commit()
     return jsonify({'status': 'success', 'value': '', 'message': 'Season in league {} deactivated'.format(league_id)})
 
@@ -317,3 +319,20 @@ def update_season_league(league_id):
     db.session.commit()
     return jsonify({'status': 'success', 'value': '',
                     'message': 'Season updated!'})
+
+
+# Create Weeks for a Season
+def create_weeks(season_id, weeks_number):
+    week_exists = Week.query.filter_by(
+        season_id=season_id).scalar() is not None
+    if week_exists:
+        return
+    for index in range(weeks_number):
+        new_week = Week(season_id, index)
+        db.session.add(new_week)
+    db.session.commit()
+
+
+# Delete Weeks for a Seasons
+def delete_weeks(season_id):
+    Week.query.filter_by(season_id=season_id).delete()
