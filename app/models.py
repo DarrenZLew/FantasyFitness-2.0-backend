@@ -12,7 +12,8 @@ class Member_activity_week(db.Model):
         'activities.id'))
     week_id = db.Column(db.Integer, db.ForeignKey(
         'weeks.id'))
-    completed_activity_count = db.Column(db.Float)
+    activity_count = db.Column(db.Float, default=0)
+    activity_total = db.Column(db.Float, default=0)
     member = db.relationship('Member', back_populates="member_activity_week")
     activity = db.relationship(
         'Activity', back_populates="member_activity_week")
@@ -22,11 +23,18 @@ class Member_activity_week(db.Model):
         db.UniqueConstraint('member_id', 'activity_id', 'week_id'),
     )
 
+    def __init__(self, member_id, activity_id, week_id, activity_count=0, activity_total=0):
+        self.member_id = member_id
+        self.activity_id = activity_id
+        self.week_id = week_id
+        self.activity_count = activity_count
+        self.activity_total = activity_total
+
 
 class MemberActivityWeekSchema(ma.Schema):
     class Meta:
         fields = ('member_id', 'activity_id',
-                  'week_id', 'completed_activity_count')
+                  'week_id', 'activity_count', 'activity_total')
 
 
 # Init schema
@@ -121,7 +129,7 @@ class Activity(db.Model):
 # Activity Schema
 class ActivitySchema(ma.Schema):
     class Meta:
-        fields = ('league_id', 'points', 'name',
+        fields = ('id', 'league_id', 'points', 'name',
                   'bonus', 'limit', 'member_activity_week')
     member_activity_week = ma.List(ma.Nested(MemberActivityWeekSchema))
 
@@ -168,7 +176,7 @@ class Season(db.Model):
         'leagues.id'))
     weeks_number = db.Column(db.Integer)
     disabled = db.Column(db.Boolean)
-    start_date = db.Column(db.DateTime)
+    start_date = db.Column(db.DateTime(timezone=True))
     league = db.relationship('League', back_populates='seasons')
     weeks = db.relationship('Week', back_populates='season')
 

@@ -3,6 +3,7 @@ from app.models import *
 from flask import Blueprint
 from flask import request, jsonify
 from flask_login import LoginManager, login_user
+import datetime
 
 mod_auth = Blueprint('auth', __name__, url_prefix='/auth')
 mod_league = Blueprint('league', __name__, url_prefix='/leagues')
@@ -239,29 +240,36 @@ def edit_activities_league(league_id):
 
 
 # Get activities for a league
-@mod_league.route('/<league_id>/activities', methods=['GET'])
 def get_activities_league(league_id):
-    all_activities_league = Activity.query.filter_by(league_id=league_id).all()
+    return Activity.query.filter_by(league_id=league_id).all()
+
+
+# Get activities for a league url
+@mod_league.route('/<league_id>/activities', methods=['GET'])
+def get_activities_league_url(league_id):
+    all_activities_league = get_activities_league(league_id)
     result = activities_schema.dump(all_activities_league)
     message = '' if len(
         result) > 0 else 'This league does not have any activities'
     return jsonify({'status': 'success', 'value': result, 'message': message})
 
 
-# Get members for a league
-@mod_league.route('/<league_id>/members', methods=['GET'])
-def get_members_league(league_id):
+def get_members_league(league_id, inside_league=True):
     # members outside of selected league
-    if request.args.get('in') == 'false':
-        all_members_league = Member.query.join(
+    if (inside_league == 'false'):
+        return Member.query.join(
             League, ~Member.leagues.any(league_id=league_id)).all()
     # members inside of selected league
     else:
-        all_members_league = Member.query.join(
+        return Member.query.join(
             League, Member.leagues.any(league_id=league_id)).all()
 
-    result = members_schema.dump(all_members_league)
 
+# Get members for a league
+@mod_league.route('/<league_id>/members', methods=['GET'])
+def get_members_league_url(league_id):
+    all_members_league = get_members_league(league_id, request.args.get('in'))
+    result = members_schema.dump(all_members_league)
     message = '' if len(
         result) > 0 else 'No members found for this request'
     return jsonify({'status': 'success', 'value': result, 'message': message})
@@ -273,17 +281,17 @@ def get_season_league(league_id):
     active_season = Season.query.filter_by(
         league_id=league_id).first()
     result = season_schema.dump(active_season)
-    message = 'Successfully received active season for league {}'.format(
-        league_id)
+    message = 'Successfully received season for league {}'.format(league_id)
     return jsonify({'status': 'success', 'value': result, 'message': message})
-
 
 # Activate Season for a League
 @mod_league.route('/<league_id>/seasons/activate', methods=['POST'])
 def activate_season_league(league_id):
     season = Season.query.filter_by(league_id=league_id).first()
+    if not season.disabled:
+        return jsonify({'status': 'failed', 'value': '', 'message': 'Season in league {} already activated'.format(league_id)})
     season.disabled = False
-    create_weeks(league_id, season.weeks_number)
+    create_weeks(season.id, season.weeks_number, league_id)
     db.session.commit()
     return jsonify({'status': 'success', 'value': '', 'message': 'Season in league {} activated'.format(league_id)})
 
@@ -322,7 +330,7 @@ def update_season_league(league_id):
 
 
 # Create Weeks for a Season
-def create_weeks(season_id, weeks_number):
+def create_weeks(season_id, weeks_number, league_id):
     week_exists = Week.query.filter_by(
         season_id=season_id).scalar() is not None
     if week_exists:
@@ -330,9 +338,60 @@ def create_weeks(season_id, weeks_number):
     for index in range(weeks_number):
         new_week = Week(season_id, index)
         db.session.add(new_week)
+        # get activities for the weeks
+        league_activities = get_activities_league(league_id)
+        # get members for the weeks
+        league_members = get_members_league(league_id)
+        # add member activity week to each of the new weeks for each member
+        for activity in league_activities:
+            for member in league_members:
+                member_activity_week = Week.query.filter(Week.member_activity_week.any(
+                    member_id=member.id, activity_id=activity.id, week_id=new_week.id)).scalar() is not None
+                if not member_activity_week:
+                    new_member_activity_week = Member_activity_week(
+                        member.id, activity.id, new_week.id)
+                    db.session.add(new_member_activity_week)
     db.session.commit()
 
 
 # Delete Weeks for a Seasons
 def delete_weeks(season_id):
     Week.query.filter_by(season_id=season_id).delete()
+
+
+# Get Activities for a Week for a Season
+@mod_league.route('/<league_id>/seasons/<season_id>/weeks/<week_id>/activities', methods=['POST'])
+def get_activities_week(league_id, season_id, week_id):
+    member_id = request.json['member_id']
+    activities_member_week = []
+    # get activities from a league
+    activities = Activity.query.filter_by(league_id=league_id).all()
+    for activity in activities:
+        # get activities for a week
+        member_activity_week = Member_activity_week.query.filter_by(
+            member_id=member_id, activity_id=activity.id, week_id=week_id).first()
+        activity_member_week = {
+            "id": activity.id,
+            "name": activity.name,
+            "points": activity.points,
+            "count": member_activity_week.activity_count,
+            "total": member_activity_week.activity_total
+        }
+        activities_member_week.append(activity_member_week)
+    return jsonify({'status': 'success', 'value': activities_member_week,
+                    'message': 'Member Activities Week list received!'})
+
+
+# Update value for Member_activity_week
+@mod_league.route('/<league_id>/seasons/<season_id>/weeks/<week_id>/activities/<activity_id>', methods=['POST'])
+def update_activity_week(league_id, season_id, week_id, activity_id):
+    member_id = request.json['member_id']
+    activity_count = request.json['count']
+    activity_total = request.json['total']
+    member_activity_week = Member_activity_week.query.filter_by(
+        member_id=member_id, activity_id=activity_id, week_id=week_id).first()
+    member_activity_week.activity_count = activity_count
+    member_activity_week.activity_total = activity_total
+    db.session.commit()
+    return jsonify({'status': 'success', 'value': '',
+                    'message': 'Member Activity updated!'})
